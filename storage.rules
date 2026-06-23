@@ -1,0 +1,33 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function signedIn() { return request.auth != null; }
+
+    // Conteúdo de aprendizagem (vídeos, PDFs, anexos)
+    // Leitura: liberada (necessário para o <video>/<embed> exibir o material).
+    // Escrita: apenas usuários autenticados, com limite de tamanho.
+    match /videos/{file} {
+      allow read: if true;
+      allow write: if signedIn()
+                   && request.resource.size < 200 * 1024 * 1024   // 200 MB
+                   && request.resource.contentType.matches('video/.*');
+    }
+    match /pdfs/{file} {
+      allow read: if true;
+      allow write: if signedIn()
+                   && request.resource.size < 25 * 1024 * 1024    // 25 MB
+                   && request.resource.contentType.matches('application/pdf');
+    }
+    match /arquivos/{file} {
+      allow read: if true;
+      allow write: if signedIn()
+                   && request.resource.size < 25 * 1024 * 1024;   // 25 MB
+    }
+
+    // Bloqueia o resto.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
